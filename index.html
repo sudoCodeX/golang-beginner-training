@@ -70,7 +70,7 @@
     <div class="flex flex-col lg:flex-row min-h-screen">
 
         <!-- Left Column: Table of Contents (Fixed) -->
-        <nav id="toc" class="lg:w-72 bg-white border-b lg:border-r lg:border-b-0 shadow-lg lg:shadow-xl p-6 lg:sticky lg:top-0 h-16 lg:h-screen overflow-y-auto z-10">
+        <nav id="toc" class="lg:w-max bg-white border-b lg:border-r lg:border-b-0 shadow-lg lg:shadow-xl p-6 lg:sticky lg:top-0 h-16 lg:h-screen overflow-y-auto z-10">
             <h1 class="text-3xl font-extrabold text-teal-700 mb-6 hidden lg:block">Go Master Guide</h1>
             <h2 class="text-xl font-bold text-teal-700 block lg:hidden">Go Guide TOC</h2>
             
@@ -234,16 +234,7 @@
                     li.appendChild(subUl);
                     currentParentUl = subUl;
                     
-                } else if (level === 'h4' && currentParentUl) {
-                    // Sub-section (H4) - only nest if we found an H2 parent
-                    const li = document.createElement('li');
-                    const a = document.createElement('a');
-                    a.href = `#${id}`;
-                    a.className = 'toc-link block';
-                    a.textContent = linkText;
-                    li.appendChild(a);
-                    currentParentUl.appendChild(li);
-                }
+                } 
             });
 
             // Show TOC on desktop after loading
