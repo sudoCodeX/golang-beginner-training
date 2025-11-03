@@ -115,43 +115,50 @@
          */
         async function loadAndRenderContent() {
             let markdownFiles = [];
-            
+
             try {
                 // 1. Fetch file list from DOC_FILES.txt
                 contentContainer.innerHTML = `<p class="text-center text-lg text-slate-500 animate-pulse">Fetching file list from ${manifestPath}...</p>`;
-                
+                console.log(`[INFO] 1. Starting documentation load. Manifest path: ${manifestPath}`);
+
                 const fileListResponse = await fetch(manifestPath);
                 if (!fileListResponse.ok) {
-                    throw new Error(\`Failed to load file list from \${manifestPath}. Status: \${fileListResponse.status}. Please ensure this file exists.\`);
+                    throw new Error(`Failed to load file list from ${manifestPath}. Status: ${fileListResponse.status}. Please ensure this file exists.`);
                 }
                 const fileListText = await fileListResponse.text();
                 
                 // Parse file names (one per line, filtering out empty lines and trimming whitespace)
-                // This handles the flexible formatting (spaces/newlines) in DOC_FILES.txt
                 markdownFiles = fileListText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
                 
                 if (markdownFiles.length === 0) {
-                    throw new Error(\`The file \${manifestPath} is empty or contains no valid file names.\`);
+                    throw new Error(`The file ${manifestPath} is empty or contains no valid file names.`);
                 }
 
-                contentContainer.innerHTML = \`<p class="text-center text-lg text-slate-500 animate-pulse">Fetching \${markdownFiles.length} documentation files...</p>\`;
+                console.log(`[INFO] 2. Manifest loaded successfully. Found ${markdownFiles.length} files:`, markdownFiles);
+
+                contentContainer.innerHTML = `<p class="text-center text-lg text-slate-500 animate-pulse">Fetching ${markdownFiles.length} documentation files...</p>`;
                 let combinedMarkdown = '';
 
                 // 2. Create an array of fetch promises for the Markdown files
                 const fetchPromises = markdownFiles.map(file => fetch(file).then(response => {
                     if (!response.ok) {
                         // If any single file fails, throw an error with the filename
-                        throw new Error(\`Failed to load file: \${file} (Status: \${response.status})\`);
+                        console.error(`[ERROR] Failed to load individual file: ${file}. Status: ${response.status}`);
+                        throw new Error(`Failed to load file: ${file} (Status: ${response.status})`);
                     }
+                    console.log(`[INFO] 3. Successfully fetched: ${file}`);
                     return response.text();
                 }));
 
                 // 3. Wait for all files to load
                 const fileContents = await Promise.all(fetchPromises);
+                
+                // Helper to clean potential Byte Order Mark (BOM) which causes syntax errors
+                const cleanContent = (content) => content.replace(/^\ufeff/, '');
 
-                // 4. Combine contents into a single markdown string
-                // We join them with triple newlines for clear separation between files.
-                combinedMarkdown = fileContents.join('\n\n\n'); 
+                // 4. Combine contents into a single markdown string after cleaning
+                combinedMarkdown = fileContents.map(cleanContent).join('\n\n\n'); 
+                console.log("[INFO] 4. All files combined. Starting Markdown parsing.");
 
                 // 5. Set up marked options to generate IDs for headers
                 marked.use({
@@ -165,17 +172,21 @@
                 
                 // 7. Rebuild TOC and setup observers
                 buildTableOfContents();
+                console.log("[INFO] 5. Rendering complete. TOC built.");
 
             } catch (error) {
-                console.error("Error loading or rendering Markdown:", error);
-                contentContainer.innerHTML = \`
-                    <p class="text-red-600 font-bold">Error: Could not load the documentation.</p>
-                    <p>The system failed to load content. Check the console for details, specifically errors related to: <ul><li><code>\${manifestPath}</code> not found, or</li><li>One of the \${markdownFiles.length} files listed in the manifest is missing.</li></ul></p>
-                    <pre class="bg-red-50 p-4 rounded-lg text-sm text-red-800 mt-4">\${error.message}</pre>
-                \`;
-                tocList.innerHTML = \`<li class="text-sm text-red-500">Error loading guide.</li>\`;
+                console.error("[FATAL ERROR] Error loading or rendering Markdown:", error);
+                // Create a detailed, multi-line error message string using concatenation
+                contentContainer.innerHTML = '<p class="text-red-600 font-bold">Error: Could not load the documentation.</p>' +
+                    '<p>The system failed to load content. Check the console for details, specifically errors related to: <ul>' +
+                    `<li><code>${manifestPath}</code> not found, or</li>` +
+                    `<li>One of the ${markdownFiles.length} files listed in the manifest is missing or has a path mismatch.</li></ul></p>` +
+                    `<pre class="bg-red-50 p-4 rounded-lg text-sm text-red-800 mt-4">${error.message}</pre>`;
+                
+                tocList.innerHTML = `<li class="text-sm text-red-500">Error loading guide.</li>`;
             }
         }
+
 
         /**
          * Builds the Table of Contents dynamically based on H2 and H4 elements
