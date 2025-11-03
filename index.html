@@ -110,7 +110,7 @@
         const tocList = document.getElementById('toc-list');
         const mainContentArea = document.getElementById('content-area');
 
-                /**
+        /**
          * Loads the file list from DOC_FILES.txt, then fetches and renders all Markdown content.
          */
         async function loadAndRenderContent() {
@@ -140,15 +140,20 @@
                 let combinedMarkdown = '';
 
                 // 2. Create an array of fetch promises for the Markdown files
-                const fetchPromises = markdownFiles.map(file => fetch(file).then(response => {
-                    if (!response.ok) {
-                        // If any single file fails, throw an error with the filename
-                        console.error(`[ERROR] Failed to load individual file: ${file}. Status: ${response.status}`);
-                        throw new Error(`Failed to load file: ${file} (Status: ${response.status})`);
-                    }
-                    console.log(`[INFO] 3. Successfully fetched: ${file}`);
-                    return response.text();
-                }));
+                const fetchPromises = markdownFiles.map(file => {
+                    // CRUCIAL FIX: Encode the file name to correctly handle spaces and special characters in URLs
+                    const encodedFile = encodeURIComponent(file);
+                    console.log(`[INFO] 3. Requesting file: ${encodedFile} (Original: ${file})`);
+
+                    return fetch(encodedFile).then(response => {
+                        if (!response.ok) {
+                            // If any single file fails, throw an error with the filename
+                            console.error(`[ERROR] Failed to load individual file: ${file}. Status: ${response.status}`);
+                            throw new Error(`Failed to load file: ${file} (Status: ${response.status})`);
+                        }
+                        return response.text();
+                    });
+                });
 
                 // 3. Wait for all files to load
                 const fileContents = await Promise.all(fetchPromises);
@@ -182,7 +187,7 @@
                     <p class="text-red-600 font-bold">Error: Could not load the documentation.</p>
                     <p>The system failed to load content. Check the console for details, specifically errors related to:
                         <ul>
-                            <li><code>${manifestPath}</code> not found, or</li>
+                            <li><code>${manifestPath}</code> not found
                             <li>One of the ${markdownFiles.length} files listed in the manifest is missing or has a path mismatch.</li>
                         </ul>
                     </p>
