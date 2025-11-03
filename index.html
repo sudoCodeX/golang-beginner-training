@@ -110,7 +110,7 @@
         const tocList = document.getElementById('toc-list');
         const mainContentArea = document.getElementById('content-area');
 
-        /**
+                /**
          * Loads the file list from DOC_FILES.txt, then fetches and renders all Markdown content.
          */
         async function loadAndRenderContent() {
@@ -176,16 +176,23 @@
 
             } catch (error) {
                 console.error("[FATAL ERROR] Error loading or rendering Markdown:", error);
-                // Create a detailed, multi-line error message string using concatenation
-                contentContainer.innerHTML = '<p class="text-red-600 font-bold">Error: Could not load the documentation.</p>' +
-                    '<p>The system failed to load content. Check the console for details, specifically errors related to: <ul>' +
-                    `<li><code>${manifestPath}</code> not found, or</li>` +
-                    `<li>One of the ${markdownFiles.length} files listed in the manifest is missing or has a path mismatch.</li></ul></p>` +
-                    `<pre class="bg-red-50 p-4 rounded-lg text-sm text-red-800 mt-4">${error.message}</pre>`;
+                
+                // FIX: Using a single Template Literal (backticks) for robust, multi-line HTML assignment
+                contentContainer.innerHTML = `
+                    <p class="text-red-600 font-bold">Error: Could not load the documentation.</p>
+                    <p>The system failed to load content. Check the console for details, specifically errors related to:
+                        <ul>
+                            <li><code>${manifestPath}</code> not found, or</li>
+                            <li>One of the ${markdownFiles.length} files listed in the manifest is missing or has a path mismatch.</li>
+                        </ul>
+                    </p>
+                    <pre class="bg-red-50 p-4 rounded-lg text-sm text-red-800 mt-4">${error.message}</pre>
+                `;
                 
                 tocList.innerHTML = `<li class="text-sm text-red-500">Error loading guide.</li>`;
             }
         }
+
 
 
         /**
