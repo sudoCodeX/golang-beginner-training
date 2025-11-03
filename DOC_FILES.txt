@@ -1,0 +1,40 @@
+1. Intoduction.md
+
+2. Variables and Data Types.md
+
+3. Control Flow.md
+3.1 Switch.md
+
+4. Functions.md
+
+5. Data Structure.md
+
+6. Interfaces.md
+6.1 Anatomy and Nil Traps.md
+
+7. Concurrency.md
+7.1 Goroutines.md
+7.2 Channels.md
+7.3 Buffered Channels.md
+7.4 sync.WaitGroup.md
+7.5 Mutexes.md
+
+8. Packages.md
+8.1 Packages.md
+8.2 Modules.md
+
+9. Error Handling.md
+9.1 Custom Error Types.md
+
+10. Testing.md
+
+11. Best Practices.md
+
+12. HTTP.md
+
+13. Database.md
+
+14. Building and Deployment.md
+
+15. Advanced Topics.md
+15.1 Pointers.md
