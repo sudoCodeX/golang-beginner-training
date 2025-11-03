@@ -99,7 +99,7 @@
     <div class="flex flex-col lg:flex-row min-h-screen">
 
         <!-- Left Column: Table of Contents (Fixed) -->
-        <nav id="toc" class="lg:w-max bg-white border-b lg:border-r lg:border-b-0 shadow-lg lg:shadow-xl p-6 lg:sticky lg:top-0 h-16 lg:h-screen overflow-y-auto z-10">
+        <nav id="toc" class="lg:w-max bg-white border-b lg:border-r lg:border-b-0 shadow-lg lg:shadow-xl p-6 lg:sticky lg:top-0 lg:h-screen overflow-y-auto z-10">
             <h1 class="text-3xl font-extrabold text-teal-700 mb-6 hidden lg:block">Go Master Guide</h1>
             <h2 class="text-xl font-bold text-teal-700 block lg:hidden">Go Guide TOC</h2>
             
@@ -113,10 +113,7 @@
         <main class="flex-grow p-6 md:p-10 lg:p-16 bg-slate-50">
             <article id="content-area" class="prose max-w-none">
                 
-                <header class="mb-12 border-b pb-6 border-teal-300">
-                    <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900">Go (Golang) Comprehensive Master Guide</h1>
-                    <p class="text-xl text-slate-600 mt-2">A concise training and interview reference.</p>
-                </header>
+    
                 
                 <!-- Markdown content will be rendered into this container -->
                 <div id="markdown-container">
@@ -283,7 +280,13 @@
                 a.className = 'font-bold toc-link block pl-2 border-l-2 border-transparent text-sm hover:text-teal-600 cursor-pointer';
                 
                 // Extract title from filename (remove numbers and .md extension)
-                let title = page.filename.replace(/^\d+\.\s*/, '').replace(/\.md$/, '');
+                let title = page.filename.replace(/\.md$/, '');
+
+                const hasSubTopicNumber = /^\d+\.\d+/.test(page.filename);
+                if (hasSubTopicNumber) {
+                    title = "- " + page.filename;
+                }
+            
                 a.textContent = title;
                 
                 // Add click handler to navigate to this page
