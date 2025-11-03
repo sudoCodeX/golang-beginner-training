@@ -47,6 +47,9 @@
         }
 
         /* TOC Styles */
+        .toc-link {
+            cursor: pointer;
+        }
         .toc-link:hover {
             color: #0d9488; /* Teal 600 */
         }
@@ -54,6 +57,32 @@
             font-weight: 600;
             color: #0f766e; /* Teal 700 */
             border-left: 3px solid #0f766e;
+        }
+        /* Markdown heading styles */
+        #markdown-container h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #0f172a;
+        }
+        #markdown-container h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            color: #1e293b;
+        }
+        #markdown-container h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #334155;
+        }
+        #markdown-container strong {
+            font-weight: 700;
+            color: #1e293b;
         }
         ::-webkit-scrollbar {
             width: 8px;
@@ -109,6 +138,9 @@
         const contentContainer = document.getElementById('markdown-container');
         const tocList = document.getElementById('toc-list');
         const mainContentArea = document.getElementById('content-area');
+        
+        let allPages = []; // Store all loaded pages
+        let currentPageIndex = 0; // Track current page
 
         /**
          * Loads the file list from DOC_FILES.txt, then fetches and renders all Markdown content.
@@ -137,46 +169,51 @@
                 console.log(`[INFO] 2. Manifest loaded successfully. Found ${markdownFiles.length} files:`, markdownFiles);
 
                 contentContainer.innerHTML = `<p class="text-center text-lg text-slate-500 animate-pulse">Fetching ${markdownFiles.length} documentation files...</p>`;
-                let combinedMarkdown = '';
 
                 // 2. Create an array of fetch promises for the Markdown files
-                const fetchPromises = markdownFiles.map(file => {
-                    // CRUCIAL FIX: Encode the file name to correctly handle spaces and special characters in URLs
+                const fetchPromises = markdownFiles.map((file, index) => {
                     const encodedFile = encodeURIComponent(file);
                     console.log(`[INFO] 3. Requesting file: ${encodedFile} (Original: ${file})`);
 
                     return fetch(encodedFile).then(response => {
                         if (!response.ok) {
-                            // If any single file fails, throw an error with the filename
                             console.error(`[ERROR] Failed to load individual file: ${file}. Status: ${response.status}`);
                             throw new Error(`Failed to load file: ${file} (Status: ${response.status})`);
                         }
-                        return response.text();
+                        return response.text().then(content => ({
+                            filename: file,
+                            content: content,
+                            index: index
+                        }));
                     });
                 });
 
                 // 3. Wait for all files to load
-                const fileContents = await Promise.all(fetchPromises);
+                const fileData = await Promise.all(fetchPromises);
                 
-                // Helper to clean potential Byte Order Mark (BOM) which causes syntax errors
+                // Helper to clean potential Byte Order Mark (BOM)
                 const cleanContent = (content) => content.replace(/^\ufeff/, '');
 
-                // 4. Combine contents into a single markdown string after cleaning
-                combinedMarkdown = fileContents.map(cleanContent).join('\n\n\n'); 
-                console.log("[INFO] 4. All files combined. Starting Markdown parsing.");
+                // 4. Store all pages separately
+                allPages = fileData.map(file => ({
+                    filename: file.filename,
+                    content: cleanContent(file.content),
+                    index: file.index
+                }));
+                
+                console.log("[INFO] 4. All files loaded. Starting Markdown parsing.");
 
-                // 5. Set up marked options to generate IDs for headers
+                // 5. Set up marked options
                 marked.use({
                     gfm: true,
                     headerIds: true,
                 });
 
-                // 6. Render combined Markdown to HTML
-                const htmlContent = marked.parse(combinedMarkdown);
-                contentContainer.innerHTML = htmlContent;
-                
-                // 7. Rebuild TOC and setup observers
+                // 6. Build TOC from all pages
                 buildTableOfContents();
+                
+                // 7. Display first page
+                showPage(0);
                 console.log("[INFO] 5. Rendering complete. TOC built.");
 
             } catch (error) {
@@ -201,98 +238,67 @@
 
 
         /**
-         * Builds the Table of Contents dynamically based on H2 and H4 elements
-         * generated by the Markdown parser.
+         * Display a specific page by index
          */
-        function buildTableOfContents() {
-            // Clear placeholder/old TOC
-            tocList.innerHTML = '';
+        function showPage(pageIndex) {
+            if (pageIndex < 0 || pageIndex >= allPages.length) return;
             
-            // Find all H2 and H4 elements dynamically created by marked.js
-            // These elements automatically have IDs generated from their text content
-            const headers = contentContainer.querySelectorAll('h2, h4');
-            let currentParentUl = null;
-
-            headers.forEach(header => {
-                const level = header.tagName.toLowerCase(); // h2 or h4
-                const id = header.id;
-                const linkText = header.textContent;
-                
-                if (level === 'h2') {
-                    // Main Chapter (H2)
-                    const li = document.createElement('li');
-                    const a = document.createElement('a');
-                    a.href = `#${id}`;
-                    a.className = 'font-bold toc-link block pl-2 border-l-2 border-transparent text-sm';
-                    a.textContent = linkText;
-                    li.appendChild(a);
-                    tocList.appendChild(li);
-                    
-                    // Prepare for sub-links (UL)
-                    const subUl = document.createElement('ul');
-                    subUl.className = 'pl-4 space-y-1 mt-1 text-xs text-slate-500';
-                    li.appendChild(subUl);
-                    currentParentUl = subUl;
-                    
-                } 
+            currentPageIndex = pageIndex;
+            const page = allPages[pageIndex];
+            
+            // Render the markdown for this page
+            const htmlContent = marked.parse(page.content);
+            contentContainer.innerHTML = htmlContent;
+            
+            // Update active state in TOC
+            updateActiveTOCLink(pageIndex);
+            
+            // Scroll to top of content
+            mainContentArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        /**
+         * Update which TOC link is active
+         */
+        function updateActiveTOCLink(pageIndex) {
+            const tocLinks = document.querySelectorAll('#toc-list .toc-link');
+            tocLinks.forEach((link, index) => {
+                if (index === pageIndex) {
+                    link.classList.add('active-link');
+                } else {
+                    link.classList.remove('active-link');
+                }
             });
-
-            // Show TOC on desktop after loading
-            tocList.classList.remove('hidden');
-
-            // Re-initialize the Intersection Observer after building TOC
-            initializeObserver();
         }
 
         /**
-         * Sets up the Intersection Observer to highlight the active TOC link
-         * based on the user's scroll position.
+         * Builds the Table of Contents from all page filenames
          */
-        function initializeObserver() {
-            // Find all dynamically created TOC links and content headers
-            const tocLinks = document.querySelectorAll('#toc-list .toc-link');
-            const contentSections = contentContainer.querySelectorAll('h2[id], h4[id]');
-
-            if (contentSections.length === 0) return;
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    const id = entry.target.getAttribute('id');
-                    const link = document.querySelector(`#toc-list a[href="#${id}"]`);
-                    
-                    if (link) {
-                        // Logic to activate links when they cross the 20% viewport threshold
-                        if (entry.isIntersecting && entry.intersectionRatio >= 0.2) {
-                            // Clear all active states first
-                            tocLinks.forEach(l => { l.classList.remove('active-link'); });
-                            
-                            // Set the current link active
-                            let currentLink = link;
-                            currentLink.classList.add('active-link');
-                            
-                            // If it's a sub-section (h4) link, also highlight its main chapter (h2) link
-                            const parentUl = currentLink.closest('ul');
-                            if (parentUl && parentUl.classList.contains('pl-4')) {
-                                const parentChapterLi = parentUl.closest('li');
-                                if (parentChapterLi) {
-                                    const parentChapterLink = parentChapterLi.querySelector(':scope > a');
-                                    if (parentChapterLink) {
-                                        parentChapterLink.classList.add('active-link');
-                                    }
-                                }
-                            }
-                        }
-                    }
+        function buildTableOfContents() {
+            tocList.innerHTML = '';
+            
+            allPages.forEach((page, index) => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.className = 'font-bold toc-link block pl-2 border-l-2 border-transparent text-sm hover:text-teal-600 cursor-pointer';
+                
+                // Extract title from filename (remove numbers and .md extension)
+                let title = page.filename.replace(/^\d+\.\s*/, '').replace(/\.md$/, '');
+                a.textContent = title;
+                
+                // Add click handler to navigate to this page
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showPage(index);
                 });
-            }, { 
-                rootMargin: '0px 0px -80% 0px', // Highlight links when section is near the top
-                threshold: 0.2 
+                
+                li.appendChild(a);
+                tocList.appendChild(li);
             });
 
-            contentSections.forEach(section => {
-                observer.observe(section);
-            });
+            tocList.classList.remove('hidden');
         }
+
 
         // Start the loading process when the page is fully loaded
         document.addEventListener('DOMContentLoaded', loadAndRenderContent);
