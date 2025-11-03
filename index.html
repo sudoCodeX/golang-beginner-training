@@ -217,7 +217,7 @@
                     // Main Chapter (H2)
                     const li = document.createElement('li');
                     const a = document.createElement('a');
-                    a.href = \`#\${id}\`;
+                    a.href = `#${id}`;
                     a.className = 'toc-link block pl-2 border-l-2 border-transparent text-sm';
                     a.textContent = linkText;
                     li.appendChild(a);
@@ -233,7 +233,7 @@
                     // Sub-section (H4) - only nest if we found an H2 parent
                     const li = document.createElement('li');
                     const a = document.createElement('a');
-                    a.href = \`#\${id}\`;
+                    a.href = `#${id}`;
                     a.className = 'toc-link block';
                     a.textContent = linkText;
                     li.appendChild(a);
@@ -262,7 +262,7 @@
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     const id = entry.target.getAttribute('id');
-                    const link = document.querySelector(\`#toc-list a[href="#\${id}"]\`);
+                    const link = document.querySelector(`#toc-list a[href="#${id}"]`);
                     
                     if (link) {
                         // Logic to activate links when they cross the 20% viewport threshold
